@@ -1,2 +1,2 @@
-# -otus-mssql-2020-02-burovsky
-Otus education MS SQL Server Developer
+Домашние задания курса OTUS "MS SQL Server разработчик". 
+Группа 2020-02. 
