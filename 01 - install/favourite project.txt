@@ -1,0 +1,7 @@
+Проект: Google Maps
+
+Используемые базв данных: NoSQL документарная колоночная 
+Количество серверов БД: от 1000 до 3000
+Источники: https://web.archive.org/web/20100103142727/http://labs.google.com/papers/bigtable.html
+http://www.readwriteweb.com/archives/is_the_relational_database_doomed.php
+https://ru.wikipedia.org/wiki/NoSQL
