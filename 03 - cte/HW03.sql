@@ -70,11 +70,19 @@ FROM Sales.Customers c
 
 -- 4. Выберите города (ид и название), в которые были доставлены товары, входящие в тройку самых дорогих товаров, 
 --	а также Имя сотрудника, который осуществлял упаковку заказов 
-WITH CTEOrders AS
+
+WITH CTEStocks AS
 	(SELECT TOP 3
+		StockItemID
+	FROM Warehouse.StockItems
+	ORDER BY UnitPrice DESC),
+CTEOrders AS
+	(SELECT DISTINCT -- без distinct тоже можно, план запроса не меняется
 		OrderID
-	FROM Sales.OrderLines
-	ORDER BY UnitPrice DESC)
+	FROM Sales.OrderLines ol
+	WHERE EXISTS
+	(SELECT 1 FROM CTEStocks WHERE CTEStocks.StockItemID = ol.StockItemID))
+
 SELECT
 	cty.CityID,
 	cty.CityName,
@@ -86,9 +94,9 @@ FROM Sales.Orders o
 		ON c.DeliveryCityID = cty.CityID
 	JOIN Application.People p
 		ON o.PickedByPersonID = p.PersonID
-WHERE o.PickingCompletedWhen IS NOT NULL
-	AND EXISTS 
+WHERE EXISTS 
 	(SELECT 1 FROM CTEOrders CTEo WHERE CTEo.OrderID = o.OrderID) 
+	AND o.PickingCompletedWhen IS NOT NULL;
 
 -- 5. Объясните, что делает и оптимизируйте запрос:
 SELECT
