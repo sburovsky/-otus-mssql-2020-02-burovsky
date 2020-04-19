@@ -10,7 +10,7 @@ AS
 BEGIN
 	DECLARE @CustName AS nvarchar(100);
 
-	SELECT @CustName = 
+	SELECT TOP 1 @CustName = 
 		c.CustomerName
 	FROM Sales.CustomerTransactions AS ctr
 		JOIN Sales.Customers AS c
@@ -35,16 +35,19 @@ DROP PROCEDURE IF EXISTS Sales.uspAmountSalesCustomer;
 GO
 
 CREATE PROCEDURE Sales.uspAmountSalesCustomer
-	@CustomerID int
+	@CustomerID int,
+	@AmountSales decimal(18, 2) output
 AS  
     SET NOCOUNT ON;
 
-	SELECT SUM(invln.UnitPrice) AS AmountSales
+	SELECT @AmountSales = SUM(invln.UnitPrice) 
 	FROM Sales.InvoiceLines as invln
 		JOIN Sales.Invoices as inv
 			ON invln.InvoiceID = inv.InvoiceID
-	WHERE inv.CustomerID = @CustomerID
+	WHERE inv.CustomerID = @CustomerID;
+	RETURN;
 GO
+
 /* непон€тно, зачем в услови€х задачи таблица Sales.Customers, ведь можно и без нее вывести требуемое */
 
 -- 3. —оздать одинаковую функцию и хранимую процедуру, посмотреть в чем разница в производительности и почему.
@@ -248,7 +251,7 @@ BEGIN
 	SET @sql = @sql + ' AND Client.CustomerID = @CustomerID';
 
    IF @CustomerName IS NOT NULL
-	SET @sql = @sql + 'AND Client.CustomerName LIKE @CustomerName';
+	SET @sql = @sql + ' AND Client.CustomerName LIKE @CustomerName';
 
    IF @BillToCustomerID IS NOT NULL
 	SET @sql = @sql + ' AND Client.BillToCustomerID = @BillToCustomerID';
