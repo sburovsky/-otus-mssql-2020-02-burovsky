@@ -1,0 +1,5 @@
+D:\doc\edu\mssql\15 - clr\FrameWork repos\SplitString\bin\Debug\SplitString.dll
+D:\doc\edu\mssql\15 - clr\FrameWork repos\SplitString\bin\Debug\SplitString.pdb
+D:\doc\edu\mssql\15 - clr\FrameWork repos\SplitString\obj\Debug\SplitString.csprojAssemblyReference.cache
+D:\doc\edu\mssql\15 - clr\FrameWork repos\SplitString\obj\Debug\SplitString.dll
+D:\doc\edu\mssql\15 - clr\FrameWork repos\SplitString\obj\Debug\SplitString.pdb
