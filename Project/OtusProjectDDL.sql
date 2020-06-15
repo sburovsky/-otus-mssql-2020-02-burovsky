@@ -1,6 +1,6 @@
 
 -- Описание и файлы проекта: https://github.com/sburovsky/-otus-mssql-2020-02-burovsky/tree/master/Project
--- Схема проекта: https://app.dbdesigner.net/designer/schema/326391
+-- Схема проекта: ч
 
 USE master
 GO
@@ -40,6 +40,40 @@ GO
 create schema Controls
 GO
 create schema Sequences
+GO
+
+CREATE XML SCHEMA COLLECTION Materials.LiteratureXmlSchema AS   
+N' <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+			 xmlns:sqltypes="http://schemas.microsoft.com/sqlserver/2004/sqltypes" 
+			 elementFormDefault="qualified">
+    <xsd:import namespace="http://schemas.microsoft.com/sqlserver/2004/sqltypes" schemaLocation="http://schemas.microsoft.com/sqlserver/2004/sqltypes/sqltypes.xsd" />
+    <xsd:element name="References">
+		<xsd:complexType>  
+            <xsd:sequence maxOccurs="unbounded">  
+              <xsd:element name="Reference"> 
+			  	<xsd:complexType>
+					<xsd:attribute name="BookID" type="sqltypes:int" use="required" />
+					<xsd:attribute name="Chapter" type="sqltypes:int" use="optional" />
+					<xsd:attribute name="Paragraph" use="optional">
+						<xsd:simpleType>
+							<xsd:restriction base="sqltypes:nvarchar" sqltypes:sqlCompareOptions="IgnoreCase IgnoreWidth">
+								<xsd:maxLength value="50" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:attribute>
+					<xsd:attribute name="Pages" use="optional">
+						<xsd:simpleType>
+							<xsd:restriction base="sqltypes:nvarchar" sqltypes:sqlCompareOptions="IgnoreCase IgnoreWidth">
+								<xsd:maxLength value="20" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:attribute>
+				</xsd:complexType>
+			  </xsd:element>
+			</xsd:sequence>
+		  </xsd:complexType>
+	</xsd:element>
+  </xsd:schema>'
 GO
 
 -- 3. Создание последовательностей
@@ -212,7 +246,8 @@ CREATE TABLE Learning.Subjects
 (
     SubjectID int NOT NULL,
  	SubjectName nvarchar(100) NOT NULL,
-	ControlWorkID int NOT NULL,
+	ControlWorkID int NULL,
+	SubjectHours int NOT NULL,
  	ValidFrom datetime2(7) GENERATED ALWAYS AS ROW START NOT NULL,
 	ValidTo datetime2(7) GENERATED ALWAYS AS ROW END NOT NULL
  CONSTRAINT PK_Learning_Subjects PRIMARY KEY CLUSTERED(SubjectID ASC),
@@ -245,6 +280,9 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Идентификатор контрольной работы' , @level0type=N'SCHEMA',@level0name=N'Learning', @level1type=N'TABLE',@level1name=N'Subjects', @level2type=N'COLUMN',@level2name=N'ControlWorkID'
 GO
 
+EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Количество часов на изучение темы' , @level0type=N'SCHEMA',@level0name=N'Learning', @level1type=N'TABLE',@level1name=N'Subjects', @level2type=N'COLUMN',@level2name=N'SubjectHours'
+GO
+
 EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Темы занятий' , @level0type=N'SCHEMA',@level0name=N'Learning', @level1type=N'TABLE',@level1name=N'Subjects'
 GO
 
@@ -256,7 +294,7 @@ CREATE TABLE Learning.Lessons
  	SubjectID int NOT NULL,
  	HomeworkID int NULL,
 	LessonName nvarchar(200),
-	Literature xml NULL,  
+	Literature xml(Materials.LiteratureXmlSchema) NULL,  
 	GlossaryTerms nvarchar(max) NULL
 
  CONSTRAINT PK_Learning_Lessons PRIMARY KEY CLUSTERED (LessonID ASC)
@@ -287,6 +325,16 @@ CREATE NONCLUSTERED INDEX FK_Learning_Lessons_SubjectID_Learning_Subjects ON Lea
 
 CREATE NONCLUSTERED INDEX FK_Learning_Lessons_HomeworkID_Learning_Tasks ON Learning.Lessons(HomeworkID ASC);
 
+CREATE PRIMARY XML INDEX [PXML_Learning_Lessons_Literature]
+ON Learning.Lessons (Literature)
+GO
+
+CREATE XML INDEX [SXML_Learning_Lessons_Literature_Path]
+ON Learning.Lessons (Literature)
+USING XML INDEX [PXML_Learning_Lessons_Literature] 
+FOR PATH
+GO
+
 EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Уникальный идентификатор занятия' , @level0type=N'SCHEMA',@level0name=N'Learning', @level1type=N'TABLE',@level1name=N'Lessons', @level2type=N'COLUMN',@level2name=N'LessonID'
 GO
 
@@ -314,6 +362,7 @@ CREATE TABLE Learning.Schedules (
 	StudentID int NOT NULL,
 	LessonID int NOT NULL,
 	LessonDate date NOT NULL,
+	HomeWorkStatus int NOT NULL, 
   CONSTRAINT PK_LEARNING_SCHEDULES PRIMARY KEY CLUSTERED
   (
   UnitID ASC
@@ -338,6 +387,15 @@ GO
 ALTER TABLE Learning.Schedules CHECK CONSTRAINT FK_Learning_Schedules_LessonID_Learning_Lessons
 GO
 
+ALTER TABLE Learning.Schedules ADD CONSTRAINT CH_Learning_Schedules_HomeWorkStatus CHECK (HomeWorkStatus >=0 AND HomeWorkStatus <=4); 
+GO
+
+ALTER TABLE Learning.Schedules CHECK CONSTRAINT CH_Learning_Schedules_HomeWorkStatus
+GO
+
+ALTER TABLE Learning.Schedules ADD CONSTRAINT DF_Learning_Schedules_HomeWorkStatus  DEFAULT 0 FOR HomeWorkStatus
+GO
+
 CREATE NONCLUSTERED INDEX FK_Learning_Schedules_StudentID_Peoples_Students ON Learning.Schedules(StudentID ASC);
 
 CREATE NONCLUSTERED INDEX FK_Learning_Schedules_LessonID_Learning_Lessons ON Learning.Schedules(LessonID ASC);
@@ -352,6 +410,9 @@ EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Идентификатор зан
 GO
 
 EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Дата занятия' , @level0type=N'SCHEMA',@level0name=N'Learning', @level1type=N'TABLE',@level1name=N'Schedules', @level2type=N'COLUMN',@level2name=N'LessonDate'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Статус домашней работы: 0 - не выдана, 1 - выдана, 2 - на проверке, 3 - выполнена' , @level0type=N'SCHEMA',@level0name=N'Learning', @level1type=N'TABLE',@level1name=N'Schedules', @level2type=N'COLUMN',@level2name=N'HomeWorkStatus'
 GO
 
 EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Расписание занятий' , @level0type=N'SCHEMA',@level0name=N'Learning', @level1type=N'TABLE',@level1name=N'Schedules'
@@ -395,7 +456,7 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Наименование книги' , @level0type=N'SCHEMA',@level0name=N'Materials', @level1type=N'TABLE',@level1name=N'Books', @level2type=N'COLUMN',@level2name=N'BookName'
 GO
 
-EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Дополнпительная информация JSON (издательство, количество страниц и пр.)' , @level0type=N'SCHEMA',@level0name=N'Materials', @level1type=N'TABLE',@level1name=N'Books', @level2type=N'COLUMN',@level2name=N'ExtendedInfo'
+EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Дополнительная информация JSON (издательство, количество страниц и пр.)' , @level0type=N'SCHEMA',@level0name=N'Materials', @level1type=N'TABLE',@level1name=N'Books', @level2type=N'COLUMN',@level2name=N'ExtendedInfo'
 GO
 
 EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'Литература' , @level0type=N'SCHEMA',@level0name=N'Materials', @level1type=N'TABLE',@level1name=N'Books'
