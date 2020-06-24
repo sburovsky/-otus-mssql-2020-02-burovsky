@@ -1,6 +1,6 @@
 
 -- ќписание и файлы проекта: https://github.com/sburovsky/-otus-mssql-2020-02-burovsky/tree/master/Project
--- —хема проекта: ч
+-- —хема проекта: https://dbdesigner.page.link/EyBwQYZnkuVvwxpg6
 
 USE master
 GO

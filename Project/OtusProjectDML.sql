@@ -253,7 +253,6 @@ Where l.LessonID = @LessonID)
 
 GO
 
-
 Drop Proc if exists Controls.FeedbackAdd;
 GO
 
@@ -357,3 +356,37 @@ AS
 				THEN N'ќценка добавлена'
 			END;
 GO
+
+Drop Function if exists Learning.RatingCount;
+GO
+
+CREATE Function Learning.RatingCount(@StudentID int)
+RETURNS TABLE 
+
+-- расчет рейтингов студента
+AS 
+	Return
+	(
+
+		WITH cteMarks AS 
+		( SELECT 
+			cast (ctrlw.mark as decimal(10, 1)) AS Mark,
+			ctrlw.StudentID,
+			ts.TaskWeight	
+		FROM Controls.ControlWork as ctrlw
+			INNER JOIN Learning.Tasks AS ts
+				on ctrlw.TaskID = ts.TaskID AND ts.TaskType = 1
+		Where  ctrlw.StudentID = @StudentID AND
+			 ctrlw.mark is not null 
+			AND ctrlw.mark > 0)
+		SELECT DISTINCT
+			M.StudentID AS StudentID,
+			AVG(M.mark) OVER (PARTITION BY M.StudentID) AS GPA,
+			SUM(M.mark * M.TaskWeight) OVER (PARTITION BY M.StudentID) / 
+				CASE WHEN SUM(M.TaskWeight) OVER (PARTITION BY M.StudentID)  = 0 THEN 0 
+						ELSE SUM (M.TaskWeight) OVER (PARTITION BY M.StudentID)
+				END AS GPWA,
+			1 + 3 * (10 - AVG(M.mark) OVER (PARTITION BY M.StudentID)) / 5 AS GPA_Germany,
+			CAST(PERCENTILE_CONT(0.5) WITHIN GROUP ( ORDER BY M.mark) OVER (Partition BY StudentID)  AS decimal(10,2)) AS Median_Mark,
+			CAST(PERCENTILE_DISC(0.5) WITHIN GROUP ( ORDER BY M.mark) OVER (Partition BY StudentID) AS decimal(10,2)) AS Median_Discrete_Mark
+		FROM cteMarks AS M);
