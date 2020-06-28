@@ -1,0 +1,6 @@
+14.0
+4
+1       SQLCHAR             0       12      "\t"     2     DeliveryCityID                   ""
+2       SQLCHAR             0       12      "\t"     3     DateMonth                        ""
+3       SQLCHAR             0       12      "\t"     4     DateYear                         ""
+4       SQLCHAR             0       41      "\r\n"   5     OrderAmount                      ""
